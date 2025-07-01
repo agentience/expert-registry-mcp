@@ -1,0 +1,233 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-06-30T12:00:00Z",
+  "experts": [
+    {
+      "id": "amplify",
+      "name": "AWS Amplify Gen 2 Expert",
+      "version": "1.0.0",
+      "description": "Expert in AWS Amplify Gen 2 development, specializing in serverless backend infrastructure, authentication, and real-time data synchronization",
+      "domains": ["backend", "cloud", "serverless", "aws"],
+      "specializations": [
+        {
+          "technology": "AWS Amplify Gen 2",
+          "frameworks": ["AWS CDK", "TypeScript", "React"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "AWS Lambda",
+          "frameworks": ["Node.js", "Python"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "DynamoDB",
+          "frameworks": ["AWS SDK"],
+          "expertise_level": "advanced"
+        }
+      ],
+      "workflow_compatibility": {
+        "feature": 0.95,
+        "bug-fix": 0.85,
+        "refactoring": 0.80,
+        "investigation": 0.70,
+        "article": 0.60
+      },
+      "constraints": [
+        "Use TypeScript-first approach",
+        "Follow AWS Well-Architected Framework",
+        "Implement proper error handling and logging",
+        "Use AWS CDK for infrastructure as code"
+      ],
+      "patterns": [
+        "Infrastructure as Code with CDK",
+        "Serverless-first architecture",
+        "Event-driven communication",
+        "GraphQL API design with AppSync"
+      ],
+      "quality_standards": [
+        "100% TypeScript type coverage",
+        "Comprehensive error handling",
+        "Unit test coverage > 80%",
+        "Integration tests for critical paths"
+      ],
+      "tools_required": ["AWS CLI", "CDK CLI", "Node.js", "TypeScript"],
+      "performance_metrics": {
+        "average_adherence_score": 9.2,
+        "successful_applications": 45,
+        "total_applications": 48,
+        "last_used": "2025-06-29T10:30:00Z"
+      }
+    },
+    {
+      "id": "cloudscape",
+      "name": "AWS Cloudscape Design System Expert",
+      "version": "1.0.0",
+      "description": "Expert in AWS Cloudscape Design System for building cloud management interfaces and enterprise applications",
+      "domains": ["frontend", "ui", "design-system", "aws"],
+      "specializations": [
+        {
+          "technology": "AWS Cloudscape",
+          "frameworks": ["React", "TypeScript"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "React",
+          "frameworks": ["Next.js", "Vite"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "TypeScript",
+          "frameworks": [],
+          "expertise_level": "expert"
+        }
+      ],
+      "workflow_compatibility": {
+        "feature": 0.90,
+        "bug-fix": 0.95,
+        "refactoring": 0.85,
+        "investigation": 0.75,
+        "article": 0.70
+      },
+      "constraints": [
+        "Follow Cloudscape design guidelines",
+        "Ensure WCAG 2.1 AA accessibility compliance",
+        "Use TypeScript for type safety",
+        "Implement responsive design patterns"
+      ],
+      "patterns": [
+        "Component composition patterns",
+        "Form validation with Cloudscape",
+        "Data table with pagination and filtering",
+        "Modal and drawer patterns"
+      ],
+      "quality_standards": [
+        "Full accessibility compliance",
+        "Cross-browser compatibility",
+        "Performance optimization (Core Web Vitals)",
+        "Comprehensive component testing"
+      ],
+      "tools_required": ["Node.js", "React DevTools", "TypeScript"],
+      "performance_metrics": {
+        "average_adherence_score": 8.8,
+        "successful_applications": 32,
+        "total_applications": 35,
+        "last_used": "2025-06-28T14:20:00Z"
+      }
+    },
+    {
+      "id": "react-nextjs",
+      "name": "React & Next.js Expert",
+      "version": "1.0.0",
+      "description": "Expert in React and Next.js development, specializing in server-side rendering, performance optimization, and modern web applications",
+      "domains": ["frontend", "fullstack", "web"],
+      "specializations": [
+        {
+          "technology": "React",
+          "frameworks": ["Next.js", "React Router", "Redux Toolkit"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "Next.js",
+          "frameworks": ["App Router", "API Routes"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "TypeScript",
+          "frameworks": [],
+          "expertise_level": "advanced"
+        }
+      ],
+      "workflow_compatibility": {
+        "feature": 0.92,
+        "bug-fix": 0.88,
+        "refactoring": 0.90,
+        "investigation": 0.80,
+        "article": 0.85
+      },
+      "constraints": [
+        "Use React best practices and hooks",
+        "Implement SSR/SSG where appropriate",
+        "Follow Next.js 14+ conventions",
+        "Optimize for Core Web Vitals"
+      ],
+      "patterns": [
+        "Server Components pattern",
+        "Data fetching with SWR/React Query",
+        "Authentication with NextAuth",
+        "State management patterns"
+      ],
+      "quality_standards": [
+        "Lighthouse score > 90",
+        "Zero runtime errors",
+        "Comprehensive test coverage",
+        "SEO optimization"
+      ],
+      "tools_required": ["Node.js", "Vercel CLI", "React DevTools"],
+      "performance_metrics": {
+        "average_adherence_score": 9.0,
+        "successful_applications": 58,
+        "total_applications": 62,
+        "last_used": "2025-06-30T08:00:00Z"
+      }
+    },
+    {
+      "id": "dynamodb",
+      "name": "AWS DynamoDB Expert",
+      "version": "1.0.0",
+      "description": "Expert in AWS DynamoDB NoSQL database design, specializing in single-table design patterns, performance optimization, and data modeling for serverless applications",
+      "domains": ["database", "backend", "aws", "nosql"],
+      "specializations": [
+        {
+          "technology": "AWS DynamoDB",
+          "frameworks": ["AWS SDK", "DynamoDB Toolbox", "Dynamoose"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "NoSQL",
+          "frameworks": ["Single-Table Design", "Data Modeling"],
+          "expertise_level": "expert"
+        },
+        {
+          "technology": "AWS Lambda",
+          "frameworks": ["Node.js", "Python"],
+          "expertise_level": "advanced"
+        }
+      ],
+      "workflow_compatibility": {
+        "feature": 0.88,
+        "bug-fix": 0.92,
+        "refactoring": 0.85,
+        "investigation": 0.95,
+        "article": 0.80
+      },
+      "constraints": [
+        "Follow single-table design patterns",
+        "Optimize for query patterns, not storage",
+        "Use composite keys effectively",
+        "Implement proper error handling and retries",
+        "Consider eventual consistency in design"
+      ],
+      "patterns": [
+        "Single-table design pattern",
+        "GSI overloading pattern",
+        "Hierarchical data with composite keys",
+        "Time-series data optimization",
+        "Transactions and batch operations"
+      ],
+      "quality_standards": [
+        "Optimize for read/write capacity",
+        "Implement proper pagination",
+        "Use DynamoDB Streams for event-driven architectures",
+        "Monitor with CloudWatch metrics",
+        "Implement data validation"
+      ],
+      "tools_required": ["AWS CLI", "NoSQL Workbench", "DynamoDB Local"],
+      "performance_metrics": {
+        "average_adherence_score": 9.1,
+        "successful_applications": 38,
+        "total_applications": 40,
+        "last_used": "2025-06-29T15:45:00Z"
+      }
+    }
+  ]
+}

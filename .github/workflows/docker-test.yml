@@ -1,0 +1,113 @@
+name: Docker Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docker-integration-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        load: true
+        tags: expert-registry-mcp:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Create test expert system data
+      run: |
+        mkdir -p test-expert-system/registry
+        mkdir -p test-expert-system/expert-contexts
+        cp -r expert-system/* test-expert-system/
+        
+    - name: Test container startup
+      run: |
+        docker run -d \
+          --name expert-registry-test \
+          -v $(pwd)/test-expert-system:/app/expert-system:ro \
+          -e EXPERT_SYSTEM_PATH=/app/expert-system \
+          -e NEO4J_URI=bolt://localhost:7687 \
+          -e NEO4J_PASSWORD=test \
+          expert-registry-mcp:test
+          
+        # Wait for container to start
+        sleep 10
+        
+        # Check if container is running
+        docker ps | grep expert-registry-test
+        
+        # Check container logs for errors
+        docker logs expert-registry-test
+        
+    - name: Test MCP server functionality
+      run: |
+        # Test that the server starts without critical errors
+        docker exec expert-registry-test python -c "
+        import sys
+        sys.path.append('/app/src')
+        from expert_registry_mcp.server import ExpertRegistryServer
+        print('✓ Server import successful')
+        "
+        
+    - name: Test with docker-compose
+      run: |
+        # Create minimal docker-compose for testing
+        cat > docker-compose.test.yml << EOF
+        version: '3.8'
+        services:
+          expert-registry-mcp:
+            image: expert-registry-mcp:test
+            environment:
+              - EXPERT_SYSTEM_PATH=/app/expert-system
+              - NEO4J_URI=bolt://neo4j:7687
+              - NEO4J_PASSWORD=test
+            volumes:
+              - ./test-expert-system:/app/expert-system:ro
+            depends_on:
+              - neo4j
+              
+          neo4j:
+            image: neo4j:5.15-community
+            environment:
+              - NEO4J_AUTH=neo4j/test
+              - NEO4J_PLUGINS=["apoc"]
+            tmpfs:
+              - /data
+        EOF
+        
+        # Start services
+        docker-compose -f docker-compose.test.yml up -d
+        
+        # Wait for services to be ready
+        sleep 30
+        
+        # Check that both services are running
+        docker-compose -f docker-compose.test.yml ps
+        
+        # Test Neo4j connectivity
+        docker-compose -f docker-compose.test.yml exec -T neo4j \
+          cypher-shell -u neo4j -p test "RETURN 'Neo4j is ready' as status"
+          
+    - name: Cleanup
+      if: always()
+      run: |
+        docker stop expert-registry-test || true
+        docker rm expert-registry-test || true
+        docker-compose -f docker-compose.test.yml down -v || true
+        rm -rf test-expert-system || true

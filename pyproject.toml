@@ -1,0 +1,63 @@
+[project]
+name = "expert-registry-mcp"
+version = "1.0.0"
+description = "High-performance MCP server for expert discovery with vector and graph database integration"
+authors = [
+    {name = "Agentience", email = "contact@agentience.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.9.0",
+    "chromadb>=0.4.0",
+    "neo4j>=5.0.0",
+    "watchdog>=3.0.0",
+    "pydantic>=2.0.0",
+    "numpy>=1.24.0",
+    "sentence-transformers>=2.2.0",
+    "annoy>=1.17.0",
+    "cachetools>=5.3.0",
+    "aiofiles>=23.0.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[project.scripts]
+expert-registry-mcp = "expert_registry_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501", "B008"]
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true

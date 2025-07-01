@@ -1,0 +1,112 @@
+{
+  "name": "@agentience/expert-registry-mcp",
+  "version": "1.0.0",
+  "description": "High-performance MCP server for expert discovery, registration, and context injection",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "expert-system",
+    "ai-agents",
+    "claude"
+  ],
+  "author": "Agentience",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "chokidar": "^3.6.0",
+    "glob": "^10.3.10",
+    "lru-cache": "^10.0.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "mcp": {
+    "name": "Expert Registry",
+    "description": "Expert discovery and context injection for AI agents",
+    "commands": {
+      "install": "npm install -g @agentience/expert-registry-mcp",
+      "run": "expert-registry-mcp"
+    },
+    "tools": [
+      {
+        "name": "expert_registry_list",
+        "description": "List all available experts with filtering options"
+      },
+      {
+        "name": "expert_registry_get",
+        "description": "Get detailed information about a specific expert"
+      },
+      {
+        "name": "expert_registry_search",
+        "description": "Search experts by query"
+      },
+      {
+        "name": "expert_detect_technologies",
+        "description": "Detect technologies in the current context"
+      },
+      {
+        "name": "expert_select_optimal",
+        "description": "Select the best expert for a task"
+      },
+      {
+        "name": "expert_assess_capability",
+        "description": "Assess expert capability for a specific task"
+      },
+      {
+        "name": "expert_load_context",
+        "description": "Load expert context for injection"
+      },
+      {
+        "name": "expert_inject_context",
+        "description": "Inject expert context into a prompt"
+      },
+      {
+        "name": "expert_track_usage",
+        "description": "Track expert usage and performance"
+      },
+      {
+        "name": "expert_get_analytics",
+        "description": "Get performance analytics for experts"
+      }
+    ],
+    "resources": [
+      {
+        "type": "expert-registry",
+        "description": "Access to the expert registry"
+      },
+      {
+        "type": "expert-context",
+        "description": "Expert knowledge and patterns"
+      },
+      {
+        "type": "performance-metrics",
+        "description": "Expert performance analytics"
+      }
+    ]
+  }
+}
