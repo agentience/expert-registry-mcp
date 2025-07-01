@@ -53,8 +53,8 @@ class ExpertRegistryServer:
         )
         
         self.graph_db = GraphDatabaseManager(
-            uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-            password=os.getenv("NEO4J_PASSWORD", "password")
+            uri=os.getenv("NEO4J_URI", "bolt://192.168.2.174:7687"),
+            password=os.getenv("NEO4J_PASSWORD", "neo4agentience")
         )
         
         # Initialize AI components

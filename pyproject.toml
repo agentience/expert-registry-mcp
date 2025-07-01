@@ -19,6 +19,8 @@ dependencies = [
     "cachetools>=5.3.0",
     "aiofiles>=23.0.0",
     "httpx>=0.25.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
 ]
 
 [project.optional-dependencies]
@@ -32,6 +34,7 @@ dev = [
 
 [project.scripts]
 expert-registry-mcp = "expert_registry_mcp.server:main"
+expert-registry-admin = "expert_registry_mcp.fastapi_server:run_server"
 
 [build-system]
 requires = ["hatchling"]
