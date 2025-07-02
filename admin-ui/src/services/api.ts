@@ -3,7 +3,7 @@ import { notifications } from '@mantine/notifications'
 
 // Handle both absolute URLs and relative paths
 const API_BASE_URL = (() => {
-  const envUrl = import.meta.env.VITE_API_URL
+  const envUrl = (import.meta as any).env?.VITE_API_URL
   if (!envUrl) {
     return '/api/admin'
   }

@@ -1,11 +1,10 @@
-import { AppShell, Burger, Group, Text, useMantineTheme } from '@mantine/core'
+import { AppShell } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { NavigationMenu } from './NavigationMenu'
 import { AppHeader } from './AppHeader'
 import { Outlet } from 'react-router-dom'
 
 export function MainLayout() {
-  const theme = useMantineTheme()
   const [opened, { toggle }] = useDisclosure()
 
   return (
@@ -26,13 +25,7 @@ export function MainLayout() {
         <NavigationMenu />
       </AppShell.Navbar>
 
-      <AppShell.Main
-        style={{
-          backgroundColor: theme.colorScheme === 'dark'
-            ? theme.colors.dark[8]
-            : theme.colors.gray[0],
-        }}
-      >
+      <AppShell.Main>
         <Outlet />
       </AppShell.Main>
     </AppShell>

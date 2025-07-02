@@ -12,6 +12,7 @@ import { Analytics } from './pages/Analytics'
 import { Performance } from './pages/Performance'
 import { Settings } from './pages/Settings'
 import { useRealtimeUpdates } from './hooks/useRealtime'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
 
 // Import Mantine styles
 import '@mantine/core/styles.css'
@@ -31,7 +32,7 @@ const queryClient = new QueryClient({
 })
 
 function AppContent() {
-  useRealtimeUpdates()
+  // Temporarily disabled - useRealtimeUpdates()
 
   return (
     <Routes>
@@ -49,15 +50,17 @@ function AppContent() {
 
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme} defaultColorScheme="light">
-        <ModalsProvider>
-          <Notifications position="top-right" />
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </ModalsProvider>
-      </MantineProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider theme={theme} defaultColorScheme="light">
+          <ModalsProvider>
+            <Notifications position="top-right" />
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </ModalsProvider>
+        </MantineProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

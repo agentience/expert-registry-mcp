@@ -30,12 +30,14 @@ class VectorDatabaseManager:
         self.persist_path = persist_path or Path("./chroma_db")
         self.persist_path.mkdir(parents=True, exist_ok=True)
         
-        # Initialize ChromaDB client
+        # Initialize ChromaDB client with telemetry disabled
+        os.environ["ANONYMIZED_TELEMETRY"] = "False"
         self.client = chromadb.PersistentClient(
             path=str(self.persist_path),
             settings=Settings(
                 anonymized_telemetry=False,
-                allow_reset=True
+                allow_reset=True,
+                is_persistent=True
             )
         )
         
