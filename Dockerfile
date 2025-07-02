@@ -81,6 +81,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port for SSE transport
 EXPOSE 8000
 
-# Default command to run the MCP server
+# Default command to run the MCP server with SSE transport
 # Note: For SSE transport, clients connect to the server process
-CMD ["expert-registry-mcp"]
+# Use environment variables to control transport type
+CMD ["python", "-m", "expert_registry_mcp", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]

@@ -117,8 +117,8 @@ case "$COMMAND" in
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✓ Expert Registry MCP services started successfully${NC}"
             echo -e "${BLUE}Services available:${NC}"
-            echo -e "  • MCP Server: expert-registry-mcp (container)"
-            echo -e "  • Neo4j Database: http://localhost:7474 (neo4j/expertregistry)"
+            echo -e "  • MCP Server: expert-registry-mcp (container) - Port 8080"
+            echo -e "  • Neo4j Database: External at 192.168.2.174:7687"
             if [ -n "$INCLUDE_REDIS" ]; then
                 echo -e "  • Redis Cache: localhost:6379"
             fi

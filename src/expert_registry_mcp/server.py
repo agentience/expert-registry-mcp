@@ -554,15 +554,55 @@ class ExpertRegistryServer:
         await self.graph_db.close()
         
 
-def main():
-    """Main entry point for the MCP server."""
+def run_server(transport: str = "stdio", host: str = "0.0.0.0", port: int = 8000):
+    """Run the MCP server with specified transport.
+    
+    Args:
+        transport: Transport type - "stdio" or "sse"
+        host: Host to bind to (for SSE transport)
+        port: Port to bind to (for SSE transport)
+    """
     server = ExpertRegistryServer()
     
     # Run initialization
     asyncio.run(server.initialize())
     
-    # Run the server
-    server.mcp.run()
+    # Run the server with specified transport
+    if transport == "sse":
+        server.mcp.run(transport="sse", host=host, port=port)
+    else:
+        server.mcp.run()
+
+
+def main():
+    """Main entry point for the MCP server."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Expert Registry MCP Server")
+    parser.add_argument(
+        "--transport", 
+        choices=["stdio", "sse"], 
+        default="stdio",
+        help="Transport type (default: stdio)"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to bind to for SSE transport (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to bind to for SSE transport (default: 8000)"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.transport == "sse":
+        print(f"Starting Expert Registry MCP Server with SSE transport on {args.host}:{args.port}")
+    
+    run_server(transport=args.transport, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

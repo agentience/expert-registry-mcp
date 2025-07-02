@@ -115,6 +115,8 @@ python -m expert_registry_mcp.server
 
 ## Claude Desktop Configuration
 
+### Option 1: stdio Transport (Default)
+
 Add to your Claude Desktop configuration:
 
 ```json
@@ -132,6 +134,57 @@ Add to your Claude Desktop configuration:
   }
 }
 ```
+
+### Option 2: SSE Transport (Network-accessible)
+
+First, start the server with SSE transport:
+
+```bash
+# Using command line
+python -m expert_registry_mcp --transport sse --port 8080
+
+# Or using convenience script
+./scripts/run-mcp-sse.sh
+
+# Or using Docker (runs on port 8080 by default)
+./scripts/deploy.sh up
+```
+
+Then configure Claude Desktop to connect via SSE:
+
+```json
+{
+  "mcpServers": {
+    "expert-registry": {
+      "transport": "sse",
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}
+```
+
+### Remote Server Configuration
+
+For connecting to a remote Expert Registry MCP server:
+
+```json
+{
+  "mcpServers": {
+    "expert-registry": {
+      "transport": "sse",
+      "url": "http://your-server.com:8080/sse"
+    }
+  }
+}
+```
+
+### SSE Transport Benefits
+
+- **Multiple Clients**: One server instance can handle multiple Claude Desktop clients
+- **Remote Access**: Server can be accessed over the network
+- **Resource Efficiency**: Shared caches and database connections
+- **Centralized Management**: Single point for expert registry updates
+- **Docker Ready**: Easily deployable with container orchestration
 
 ## Usage Examples
 

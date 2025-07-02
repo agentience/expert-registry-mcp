@@ -6,7 +6,16 @@ export function useRealtimeUpdates() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/admin/events')
+    // Skip SSE in development if API is not running
+    if (import.meta.env.DEV) {
+      console.log('Skipping SSE connection in development')
+      return
+    }
+    
+    let eventSource: EventSource | null = null
+    
+    try {
+      eventSource = new EventSource('/api/admin/events')
 
     eventSource.addEventListener('expert-update', (event) => {
       const data = JSON.parse(event.data)
@@ -30,12 +39,17 @@ export function useRealtimeUpdates() {
       })
     })
 
-    eventSource.addEventListener('error', (event) => {
-      console.error('SSE Error:', event)
-    })
+      eventSource.addEventListener('error', (event) => {
+        console.error('SSE Error:', event)
+      })
+    } catch (error) {
+      console.error('Failed to establish SSE connection:', error)
+    }
 
     return () => {
-      eventSource.close()
+      if (eventSource) {
+        eventSource.close()
+      }
     }
   }, [queryClient])
 }
