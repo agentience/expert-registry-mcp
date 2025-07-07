@@ -7,20 +7,46 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 import asyncio
 import json
+import logging
 from pathlib import Path
 
-from .models import Expert, TaskType
+from .models import Expert, TaskType, ExpertScore
 from .registry import RegistryManager
 from .context import ContextManager
 from .vector_db import VectorDatabaseManager
 from .graph_db import GraphDatabaseManager
+from .discovery import HybridDiscovery
+from .selection import SelectionEngine
+from .embeddings import EmbeddingPipeline
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Initialize managers (these would be injected in production)
 base_path = Path("./expert-system")
 registry_manager = RegistryManager(base_path / "registry" / "expert-registry.json")
 context_manager = ContextManager(base_path / "expert-contexts")
+vector_db = VectorDatabaseManager(base_path / "vector-db")
+selection_engine = SelectionEngine(registry_manager)
+
+# Initialize embedding pipeline and graph database
+embedding_pipeline = EmbeddingPipeline()
+graph_db = GraphDatabaseManager()
+
+# Initialize discovery engine with proper dependencies
+discovery_engine = HybridDiscovery(registry_manager, vector_db, graph_db, embedding_pipeline)
+
+# Initialize database connections asynchronously
+async def initialize_databases():
+    """Initialize database connections."""
+    try:
+        await graph_db.initialize()
+        logger.info("Graph database initialized successfully")
+    except Exception as e:
+        logger.warning(f"Graph database initialization failed: {e}")
+
+# Store initialization task for startup
+_db_init_task = None
 
 class ExpertCreate(BaseModel):
     id: str
@@ -316,3 +342,235 @@ async def events() -> StreamingResponse:
             "Connection": "keep-alive",
         }
     )
+
+# Expert Discovery Endpoints
+
+class DiscoveryContext(BaseModel):
+    description: str
+    technologies: Optional[List[str]] = []
+    constraints: Optional[List[str]] = []
+    workflow_type: Optional[str] = "feature"
+    include_inactive: Optional[bool] = False
+    max_results: Optional[int] = 5
+    confidence_threshold: Optional[float] = 0.0
+
+class DiscoveryResult(BaseModel):
+    experts: List[Expert]
+    total_count: int
+    search_time: float
+    algorithm: str
+    query: str
+
+def enhance_expert_with_computed_fields(expert: Expert, score: float = None, score_details: ExpertScore = None) -> Expert:
+    """Enhance expert with computed fields for UI display."""
+    # Convert to dict to modify
+    expert_dict = expert.model_dump()
+    
+    # Calculate confidence based on performance metrics and score
+    if score is not None:
+        confidence = score
+    elif expert.performance_metrics:
+        success_rate = (expert.performance_metrics.successful_applications / 
+                       max(expert.performance_metrics.total_applications, 1))
+        confidence = success_rate
+    else:
+        confidence = 0.8  # Default confidence
+    
+    # Determine active status based on last_used
+    if expert.performance_metrics and expert.performance_metrics.last_used:
+        from datetime import timedelta, timezone
+        # Ensure we're comparing timezone-aware datetimes
+        last_used = expert.performance_metrics.last_used
+        if last_used.tzinfo is None:
+            # If last_used is naive, assume UTC
+            last_used = last_used.replace(tzinfo=timezone.utc)
+        
+        six_months_ago = datetime.now(timezone.utc) - timedelta(days=180)
+        active = last_used > six_months_ago
+    else:
+        active = True  # Default to active
+    
+    # Compute experience level from specializations
+    if expert.specializations:
+        # Get the highest expertise level
+        expertise_levels = [spec.expertise_level for spec in expert.specializations]
+        if "expert" in expertise_levels:
+            experience_level = "expert"
+        elif "advanced" in expertise_levels:
+            experience_level = "senior"
+        elif "intermediate" in expertise_levels:
+            experience_level = "mid"
+        else:
+            experience_level = "junior"
+    else:
+        experience_level = "mid"  # Default
+    
+    # Add computed fields
+    expert_dict['confidence'] = float(confidence)  # Ensure it's a float
+    expert_dict['active'] = bool(active)  # Ensure it's a bool
+    expert_dict['experience_level'] = experience_level
+    
+    # Add score details if available
+    if score_details:
+        expert_dict['scores'] = {
+            'total_score': score_details.total_score,
+            'technology_match': score_details.technology_match,
+            'workflow_compatibility': score_details.workflow_compatibility,
+            'performance_history': score_details.performance_history,
+            'capability_assessment': score_details.capability_assessment,
+            'semantic_similarity': score_details.semantic_similarity if score_details.semantic_similarity is not None else 0.0,
+            'graph_connectivity': score_details.graph_connectivity if score_details.graph_connectivity is not None else 0.0
+        }
+    
+    # Ensure workflow_compatibility values are floats
+    if 'workflow_compatibility' in expert_dict and expert_dict['workflow_compatibility']:
+        expert_dict['workflow_compatibility'] = {
+            k: float(v) for k, v in expert_dict['workflow_compatibility'].items()
+        }
+    
+    # Create new Expert instance with computed fields
+    return Expert(**expert_dict)
+
+@router.post("/discovery/smart-discover")
+async def smart_discover(context: DiscoveryContext) -> DiscoveryResult:
+    """Smart discovery using hybrid AI engine."""
+    try:
+        # Ensure databases are initialized
+        global _db_init_task
+        if _db_init_task is None:
+            _db_init_task = asyncio.create_task(initialize_databases())
+        
+        # Wait for initialization if still pending
+        if not _db_init_task.done():
+            await _db_init_task
+        
+        import time
+        start_time = time.time()
+        
+        # Use the discovery engine to find experts
+        result = await discovery_engine.discover(
+            context=context.model_dump(),
+            limit=context.max_results or 5
+        )
+        
+        search_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+        
+        # Extract and enhance experts from the discovery result tuples
+        experts = []
+        filtered_count = 0
+        
+        for expert, score, metadata in result:
+            # Handle different score formats
+            score_value = None
+            score_details = None
+            
+            if hasattr(score, 'total_score'):
+                # It's an ExpertScore object
+                score_value = score.total_score
+                score_details = score
+            elif isinstance(score, (int, float)):
+                # It's just a numeric score
+                score_value = float(score)
+            else:
+                # Default if score format is unexpected
+                score_value = 0.8
+            
+            # Apply confidence threshold filtering
+            if score_value < context.confidence_threshold:
+                filtered_count += 1
+                logger.info(f"Filtered out {expert.name}: score {score_value:.2f} < threshold {context.confidence_threshold:.2f}")
+                continue
+                
+            enhanced_expert = enhance_expert_with_computed_fields(expert, score_value, score_details)
+            logger.info(f"Including {expert.name}: score {score_value:.2f} >= threshold {context.confidence_threshold:.2f}")
+            experts.append(enhanced_expert)
+        
+        # Log filtering results
+        if filtered_count > 0:
+            logger.info(f"Filtered out {filtered_count} experts below confidence threshold {context.confidence_threshold}")
+        
+        return DiscoveryResult(
+            experts=experts,
+            total_count=len(experts),
+            search_time=search_time,
+            algorithm="hybrid",
+            query=context.description
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Discovery failed: {str(e)}")
+
+class SemanticSearchRequest(BaseModel):
+    query: str
+    search_mode: str = "hybrid"
+    limit: int = 5
+    confidence_threshold: float = 0.0
+
+@router.post("/discovery/semantic-search")
+async def semantic_search(request: SemanticSearchRequest) -> DiscoveryResult:
+    """Semantic search using natural language."""
+    try:
+        import time
+        start_time = time.time()
+        
+        # Use vector database for semantic search
+        results = await vector_db.search_experts(
+            query=request.query,
+            search_mode=request.search_mode,
+            limit=request.limit
+        )
+        
+        # Enhance experts with computed fields and apply confidence filtering
+        enhanced_experts = []
+        for expert in results:
+            enhanced = enhance_expert_with_computed_fields(expert)
+            if enhanced.confidence >= request.confidence_threshold:
+                enhanced_experts.append(enhanced)
+        
+        search_time = (time.time() - start_time) * 1000
+        
+        return DiscoveryResult(
+            experts=enhanced_experts,
+            total_count=len(enhanced_experts),
+            search_time=search_time,
+            algorithm="vector",
+            query=request.query
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Semantic search failed: {str(e)}")
+
+class BasicSearchRequest(BaseModel):
+    query: str
+    search_fields: Optional[List[str]] = None
+    confidence_threshold: float = 0.0
+
+@router.post("/discovery/search")
+async def basic_search(request: BasicSearchRequest) -> DiscoveryResult:
+    """Basic text search across expert fields."""
+    try:
+        import time
+        start_time = time.time()
+        
+        # Use registry manager for basic search
+        experts = await registry_manager.search_experts(
+            query=request.query,
+            search_fields=request.search_fields or ["name", "description", "domains", "specializations"]
+        )
+        
+        # Enhance experts with computed fields and apply confidence filtering
+        enhanced_experts = []
+        for expert in experts:
+            enhanced = enhance_expert_with_computed_fields(expert)
+            if enhanced.confidence >= request.confidence_threshold:
+                enhanced_experts.append(enhanced)
+        
+        search_time = (time.time() - start_time) * 1000
+        
+        return DiscoveryResult(
+            experts=enhanced_experts,
+            total_count=len(enhanced_experts),
+            search_time=search_time,
+            algorithm="keyword",
+            query=request.query
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")

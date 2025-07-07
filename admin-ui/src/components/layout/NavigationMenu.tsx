@@ -17,7 +17,7 @@ const navItems = [
   { icon: IconFileText, label: 'Context Editor', path: '/context' },
   { icon: IconChartBar, label: 'Analytics', path: '/analytics' },
   { icon: IconActivity, label: 'Performance', path: '/performance' },
-  { icon: IconSearch, label: 'Discovery Test', path: '/discovery' },
+  { icon: IconSearch, label: 'Expert Discovery', path: '/expert-discovery' },
   { icon: IconServerBolt, label: 'System Logs', path: '/logs' },
   { icon: IconSettings, label: 'Settings', path: '/settings' },
 ]

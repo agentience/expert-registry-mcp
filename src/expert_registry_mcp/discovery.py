@@ -116,12 +116,20 @@ class HybridDiscovery:
             limit=limit * 2  # Get more for better merging
         )
         
-        # Get graph results
-        graph_results = await self.graph_db.find_expert_by_technologies(
-            technologies=technologies,
-            task_type=task_type.value,
-            limit=limit * 2
-        )
+        # Get graph results (fallback to empty if graph DB unavailable)
+        try:
+            if self.graph_db and hasattr(self.graph_db, 'driver') and self.graph_db.driver:
+                graph_results = await self.graph_db.find_expert_by_technologies(
+                    technologies=technologies,
+                    task_type=task_type.value,
+                    limit=limit * 2
+                )
+            else:
+                logger.warning("Graph database not available, using vector search only")
+                graph_results = []
+        except Exception as e:
+            logger.warning(f"Graph database error, falling back to vector search: {e}")
+            graph_results = []
         
         return semantic_results, graph_results
         
