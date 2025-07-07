@@ -1,809 +1,1191 @@
-# Implementation Plan: Connect Dashboard to Overview Stats API
+# Expert Discovery Testing Interface - Implementation Plan
 
-**Last Updated: 2025-07-01**
+**Last Updated: 2025-01-02**
 
 ## Overview
-This implementation plan follows Test-Driven Development (TDD) principles, organized into iterative cycles. Each cycle follows the Red-Green-Refactor pattern.
 
-## TDD Cycle 1: Minimal Feature - Basic Data Fetching
+This document provides an expert-validated Test-Driven Development (TDD) implementation plan for the Expert Discovery Testing Interface, following React 18 best practices with TypeScript, Mantine UI, and modern React patterns.
 
-### Objective
-Implement the most basic version of `useOverviewStats` hook that can fetch data from the API.
+## TDD Implementation Strategy
 
-### Red Phase - Write Failing Tests
+### Red-Green-Refactor Cycle
+1. **Red Phase** - Write failing tests for new functionality
+2. **Green Phase** - Write minimal code to pass tests
+3. **Refactor Phase** - Improve code quality while keeping tests passing
 
+### Implementation Principles
+- Test-first development for all features
+- Component-driven architecture
+- Hooks for business logic separation
+- Error boundaries for resilience
+- Performance optimization from the start
+- Accessibility as a core requirement
+
+## Sprint 1: Core Infrastructure & Technology Detection
+
+### Day 1-2: Project Setup & Test Infrastructure
+
+#### TDD Cycle 1: Project Configuration
+**Red Phase - Tests:**
 ```typescript
-// hooks/useOverviewStats.test.tsx
-import { renderHook, waitFor } from '@testing-library/react';
-import { useOverviewStats } from './useOverviewStats';
-import { wrapper } from '../test-utils/setup';
-import { server } from '../test-utils/msw-server';
-import { rest } from 'msw';
-
-describe('useOverviewStats - Basic Functionality', () => {
-  it('should fetch overview stats successfully', async () => {
-    const mockData = {
-      total_experts: 42,
-      active_tasks: 5,
-      success_rate: 94.5,
-      avg_response_time: 124
-    };
-
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res(ctx.json(mockData));
-      })
-    );
-
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.data).toEqual(mockData);
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBeNull();
-    });
-  });
-
-  it('should return loading state initially', () => {
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.data).toBeUndefined();
-    expect(result.current.error).toBeNull();
-  });
-});
+// src/test/setup.test.ts
+describe('Test Infrastructure', () => {
+  it('should have React Testing Library configured')
+  it('should have MSW handlers configured')
+  it('should have axe-core for accessibility testing')
+  it('should have test utilities available')
+})
 ```
 
-### Green Phase - Minimal Implementation
+**Green Phase - Implementation:**
+1. Initialize React 18 + TypeScript project
+2. Configure Jest and React Testing Library
+3. Set up MSW for API mocking
+4. Create test utilities and custom render
+5. Configure TypeScript strict mode
 
+**Refactor Phase:**
+- Extract common test configuration
+- Create reusable test helpers
+- Set up CI/CD test pipeline
+
+#### TDD Cycle 2: Routing & Page Structure
+**Red Phase - Tests:**
 ```typescript
-// hooks/useOverviewStats.ts
-import { useQuery } from '@tanstack/react-query';
-
-interface OverviewStats {
-  total_experts: number;
-  active_tasks: number;
-  success_rate: number;
-  avg_response_time: number;
-}
-
-export const useOverviewStats = () => {
-  const query = useQuery<OverviewStats>({
-    queryKey: ['overview-stats'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/stats/overview');
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
-      }
-      return response.json();
-    },
-  });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-  };
-};
+// src/pages/ExpertDiscovery/ExpertDiscovery.test.tsx
+describe('ExpertDiscovery Page', () => {
+  it('should render page with correct title')
+  it('should have tabbed navigation')
+  it('should handle tab switching')
+  it('should be accessible with keyboard navigation')
+})
 ```
 
-### Refactor Phase
-
+**Green Phase - Implementation:**
 ```typescript
-// types/stats.ts
-export interface OverviewStats {
-  total_experts: number;
-  active_tasks: number;
-  success_rate: number;
-  avg_response_time: number;
-}
-
-// api/statsApi.ts
-export const fetchOverviewStats = async (): Promise<OverviewStats> => {
-  const response = await fetch('/api/admin/stats/overview');
-  if (!response.ok) {
-    throw new Error('Failed to fetch stats');
-  }
-  return response.json();
-};
-
-// hooks/useOverviewStats.ts (refactored)
-import { useQuery } from '@tanstack/react-query';
-import { fetchOverviewStats } from '../api/statsApi';
-import type { OverviewStats } from '../types/stats';
-
-export const STATS_QUERY_KEY = ['overview-stats'] as const;
-
-export const useOverviewStats = () => {
-  const query = useQuery<OverviewStats>({
-    queryKey: STATS_QUERY_KEY,
-    queryFn: fetchOverviewStats,
-  });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-  };
-};
-```
-
-### Integration Test
-
-```typescript
-// components/Dashboard.test.tsx
-describe('Dashboard Integration - Cycle 1', () => {
-  it('should display loading state while fetching', () => {
-    render(<Dashboard />, { wrapper });
-    
-    expect(screen.getByTestId('stats-skeleton')).toBeInTheDocument();
-  });
-
-  it('should display stats after successful fetch', async () => {
-    render(<Dashboard />, { wrapper });
-    
-    await waitFor(() => {
-      expect(screen.getByText('42')).toBeInTheDocument();
-      expect(screen.getByText('Total Experts')).toBeInTheDocument();
-    });
-  });
-});
-```
-
-## TDD Cycle 2: Error Handling
-
-### Objective
-Add comprehensive error handling for different failure scenarios.
-
-### Red Phase - Error Handling Tests
-
-```typescript
-describe('useOverviewStats - Error Handling', () => {
-  it('should handle network errors', async () => {
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res.networkError('Network request failed');
-      })
-    );
-
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.error).toBeDefined();
-      expect(result.current.error?.type).toBe('NETWORK_ERROR');
-      expect(result.current.isLoading).toBe(false);
-    });
-  });
-
-  it('should handle 500 server errors', async () => {
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res(ctx.status(500), ctx.json({ message: 'Server error' }));
-      })
-    );
-
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.error?.type).toBe('SERVER_ERROR');
-      expect(result.current.error?.message).toBe('Server error');
-    });
-  });
-
-  it('should handle timeout errors', async () => {
-    jest.useFakeTimers();
-    
-    server.use(
-      rest.get('/api/admin/stats/overview', async (req, res, ctx) => {
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        return res(ctx.json({}));
-      })
-    );
-
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    jest.advanceTimersByTime(5000);
-
-    await waitFor(() => {
-      expect(result.current.error?.type).toBe('TIMEOUT');
-    });
-
-    jest.useRealTimers();
-  });
-});
-```
-
-### Green Phase - Error Handling Implementation
-
-```typescript
-// types/errors.ts
-export type ErrorType = 'NETWORK_ERROR' | 'SERVER_ERROR' | 'TIMEOUT' | 'UNAUTHORIZED' | 'PARSE_ERROR';
-
-export class StatsError extends Error {
-  constructor(
-    public type: ErrorType,
-    message: string,
-    public statusCode?: number
-  ) {
-    super(message);
-    this.name = 'StatsError';
-  }
-}
-
-// api/statsApi.ts (enhanced)
-export const fetchOverviewStats = async (): Promise<OverviewStats> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    const response = await fetch('/api/admin/stats/overview', {
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new StatsError('UNAUTHORIZED', 'Authentication required', 401);
-      }
-      if (response.status >= 500) {
-        const error = await response.json().catch(() => ({ message: 'Server error' }));
-        throw new StatsError('SERVER_ERROR', error.message, response.status);
-      }
-      throw new StatsError('SERVER_ERROR', `HTTP ${response.status}`, response.status);
-    }
-
-    try {
-      return await response.json();
-    } catch (e) {
-      throw new StatsError('PARSE_ERROR', 'Invalid response format');
-    }
-  } catch (error) {
-    clearTimeout(timeoutId);
-    
-    if (error instanceof StatsError) {
-      throw error;
-    }
-    
-    if (error.name === 'AbortError') {
-      throw new StatsError('TIMEOUT', 'Request timeout');
-    }
-    
-    throw new StatsError('NETWORK_ERROR', error.message || 'Network request failed');
-  }
-};
-
-// hooks/useOverviewStats.ts (enhanced)
-export const useOverviewStats = () => {
-  const query = useQuery<OverviewStats, StatsError>({
-    queryKey: STATS_QUERY_KEY,
-    queryFn: fetchOverviewStats,
-    retry: (failureCount, error) => {
-      // Don't retry on auth errors
-      if (error.type === 'UNAUTHORIZED') return false;
-      // Retry up to 3 times for other errors
-      return failureCount < 3;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
-  };
-};
-```
-
-### Refactor Phase - Error UI Components
-
-```typescript
-// components/ErrorDisplay.tsx
-interface ErrorDisplayProps {
-  error: StatsError;
-  onRetry: () => void;
-}
-
-export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onRetry }) => {
-  const errorMessages = {
-    NETWORK_ERROR: 'Unable to connect to the server. Please check your connection.',
-    SERVER_ERROR: 'Server error occurred. Please try again later.',
-    TIMEOUT: 'Request timed out. Please try again.',
-    UNAUTHORIZED: 'You need to log in to view this data.',
-    PARSE_ERROR: 'Received invalid data from server.',
-  };
-
-  return (
-    <div className="error-container" role="alert">
-      <p className="error-message">{errorMessages[error.type] || error.message}</p>
-      {error.type !== 'UNAUTHORIZED' && (
-        <button onClick={onRetry} className="retry-button">
-          Retry
-        </button>
-      )}
-    </div>
-  );
-};
-```
-
-## TDD Cycle 3: Auto-refresh Functionality
-
-### Objective
-Implement automatic data refresh every 30 seconds with proper lifecycle management.
-
-### Red Phase - Auto-refresh Tests
-
-```typescript
-describe('useOverviewStats - Auto-refresh', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('should refetch data every 30 seconds', async () => {
-    let callCount = 0;
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        callCount++;
-        return res(ctx.json({ total_experts: callCount }));
-      })
-    );
-
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    // Wait for initial fetch
-    await waitFor(() => expect(result.current.data?.total_experts).toBe(1));
-
-    // Advance time by 30 seconds
-    act(() => {
-      jest.advanceTimersByTime(30000);
-    });
-
-    // Wait for refetch
-    await waitFor(() => expect(result.current.data?.total_experts).toBe(2));
-  });
-
-  it('should pause refetch when window is not focused', async () => {
-    let callCount = 0;
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        callCount++;
-        return res(ctx.json({ total_experts: callCount }));
-      })
-    );
-
-    const { result } = renderHook(() => useOverviewStats(), { wrapper });
-
-    await waitFor(() => expect(result.current.data?.total_experts).toBe(1));
-
-    // Simulate window blur
-    act(() => {
-      window.dispatchEvent(new Event('blur'));
-    });
-
-    // Advance time
-    act(() => {
-      jest.advanceTimersByTime(30000);
-    });
-
-    // Should not have refetched
-    expect(callCount).toBe(1);
-  });
-});
-```
-
-### Green Phase - Auto-refresh Implementation
-
-```typescript
-// hooks/useOverviewStats.ts (with auto-refresh)
-export interface UseOverviewStatsOptions {
-  refetchInterval?: number;
-  refetchOnWindowFocus?: boolean;
-}
-
-export const useOverviewStats = (options?: UseOverviewStatsOptions) => {
-  const {
-    refetchInterval = 30000, // 30 seconds
-    refetchOnWindowFocus = true,
-  } = options || {};
-
-  const query = useQuery<OverviewStats, StatsError>({
-    queryKey: STATS_QUERY_KEY,
-    queryFn: fetchOverviewStats,
-    refetchInterval,
-    refetchIntervalInBackground: false, // Pause when tab is not active
-    refetchOnWindowFocus,
-    retry: (failureCount, error) => {
-      if (error.type === 'UNAUTHORIZED') return false;
-      return failureCount < 3;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
-    isRefetching: query.isRefetching,
-  };
-};
-```
-
-### Refactor Phase - Refresh Indicator
-
-```typescript
-// components/RefreshIndicator.tsx
-interface RefreshIndicatorProps {
-  isRefetching: boolean;
-  lastUpdated?: Date;
-}
-
-export const RefreshIndicator: React.FC<RefreshIndicatorProps> = ({ 
-  isRefetching, 
-  lastUpdated 
-}) => {
-  return (
-    <div className="refresh-indicator">
-      {isRefetching && (
-        <span className="refresh-spinner" aria-label="Refreshing data">
-          🔄
-        </span>
-      )}
-      {lastUpdated && (
-        <span className="last-updated">
-          Last updated: {formatRelativeTime(lastUpdated)}
-        </span>
-      )}
-    </div>
-  );
-};
-
-// utils/time.ts
-export const formatRelativeTime = (date: Date): string => {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+// src/pages/ExpertDiscovery/index.tsx
+export const ExpertDiscoveryPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>('query')
   
-  if (seconds < 60) return 'just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`;
-  return `${Math.floor(seconds / 3600)} hours ago`;
-};
-```
-
-## TDD Cycle 4: Caching and Optimization
-
-### Objective
-Implement advanced caching strategies and performance optimizations.
-
-### Red Phase - Caching Tests
-
-```typescript
-describe('useOverviewStats - Caching', () => {
-  it('should use cached data when available', async () => {
-    let callCount = 0;
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        callCount++;
-        return res(ctx.json({ total_experts: 42 }));
-      })
-    );
-
-    // First render
-    const { result: result1, unmount: unmount1 } = renderHook(
-      () => useOverviewStats(),
-      { wrapper }
-    );
-
-    await waitFor(() => expect(result1.current.data).toBeDefined());
-    unmount1();
-
-    // Second render within stale time
-    const { result: result2 } = renderHook(
-      () => useOverviewStats(),
-      { wrapper }
-    );
-
-    // Should use cached data immediately
-    expect(result2.current.data).toBeDefined();
-    expect(callCount).toBe(1); // No new request
-  });
-
-  it('should prefetch data on hover', async () => {
-    const { result } = renderHook(
-      () => useOverviewStatsPrefetch(),
-      { wrapper }
-    );
-
-    act(() => {
-      result.current.prefetch();
-    });
-
-    await waitFor(() => {
-      const cache = queryClient.getQueryData(STATS_QUERY_KEY);
-      expect(cache).toBeDefined();
-    });
-  });
-
-  it('should optimize re-renders with structural sharing', async () => {
-    const data1 = { total_experts: 42, active_tasks: 5 };
-    const data2 = { ...data1 }; // Same values, different object
-
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res(ctx.json(data1));
-      })
-    );
-
-    const { result, rerender } = renderHook(
-      () => useOverviewStats(),
-      { wrapper }
-    );
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    const firstDataRef = result.current.data;
-
-    // Trigger refetch with same data
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res(ctx.json(data2));
-      })
-    );
-
-    act(() => {
-      result.current.refetch();
-    });
-
-    await waitFor(() => expect(result.current.isRefetching).toBe(false));
-
-    // Should maintain same reference due to structural sharing
-    expect(result.current.data).toBe(firstDataRef);
-  });
-});
-```
-
-### Green Phase - Caching Implementation
-
-```typescript
-// config/queryClient.ts
-import { QueryClient } from '@tanstack/react-query';
-
-export const createQueryClient = () => new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 2, // 2 minutes
-      cacheTime: 1000 * 60 * 10, // 10 minutes
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: 'always',
-      structuralSharing: true, // Optimize re-renders
-    },
-  },
-});
-
-// hooks/useOverviewStats.ts (optimized)
-export const useOverviewStats = (options?: UseOverviewStatsOptions) => {
-  const {
-    refetchInterval = 30000,
-    refetchOnWindowFocus = true,
-    staleTime = 1000 * 60 * 2, // 2 minutes
-  } = options || {};
-
-  const query = useQuery<OverviewStats, StatsError>({
-    queryKey: STATS_QUERY_KEY,
-    queryFn: fetchOverviewStats,
-    refetchInterval,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus,
-    staleTime,
-    select: useCallback((data: OverviewStats) => ({
-      ...data,
-      // Computed values
-      isHighPerformance: data.success_rate > 90,
-      responseTimeStatus: data.avg_response_time < 100 ? 'fast' : 'normal',
-    }), []),
-    retry: (failureCount, error) => {
-      if (error.type === 'UNAUTHORIZED') return false;
-      return failureCount < 3;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    refetch: query.refetch,
-    isRefetching: query.isRefetching,
-    dataUpdatedAt: query.dataUpdatedAt,
-  };
-};
-
-// hooks/useOverviewStatsPrefetch.ts
-export const useOverviewStatsPrefetch = () => {
-  const queryClient = useQueryClient();
-
-  const prefetch = useCallback(() => {
-    return queryClient.prefetchQuery({
-      queryKey: STATS_QUERY_KEY,
-      queryFn: fetchOverviewStats,
-      staleTime: 1000 * 60 * 2,
-    });
-  }, [queryClient]);
-
-  return { prefetch };
-};
-```
-
-### Refactor Phase - Performance Monitoring
-
-```typescript
-// hooks/usePerformanceMonitor.ts
-export const usePerformanceMonitor = (queryKey: string) => {
-  useEffect(() => {
-    const startTime = performance.now();
-    
-    return () => {
-      const duration = performance.now() - startTime;
-      if (duration > 1000) {
-        console.warn(`Query ${queryKey} took ${duration}ms`);
-      }
-    };
-  }, [queryKey]);
-};
-
-// components/Dashboard.tsx (final integration)
-export const Dashboard: React.FC = () => {
-  const { 
-    data, 
-    isLoading, 
-    error, 
-    refetch, 
-    isRefetching,
-    dataUpdatedAt 
-  } = useOverviewStats();
-
-  usePerformanceMonitor('overview-stats');
-
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
-
-  if (error) {
-    return <ErrorDisplay error={error} onRetry={refetch} />;
-  }
-
   return (
-    <div className="dashboard">
-      <RefreshIndicator 
-        isRefetching={isRefetching}
-        lastUpdated={dataUpdatedAt ? new Date(dataUpdatedAt) : undefined}
+    <Container size="xl">
+      <Title order={1}>Expert Discovery Testing</Title>
+      <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs.List>
+          <Tabs.Tab value="query">Query Builder</Tabs.Tab>
+          <Tabs.Tab value="technology">Technology Detection</Tabs.Tab>
+          <Tabs.Tab value="semantic">Semantic Search</Tabs.Tab>
+          <Tabs.Tab value="graph">Graph Explorer</Tabs.Tab>
+          <Tabs.Tab value="comparison">Results Comparison</Tabs.Tab>
+          <Tabs.Tab value="benchmark">Performance</Tabs.Tab>
+        </Tabs.List>
+        {/* Tab panels */}
+      </Tabs>
+    </Container>
+  )
+}
+```
+
+### Day 3-4: Query Builder Components
+
+#### TDD Cycle 3: QueryInput Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/QueryBuilder/QueryInput.test.tsx
+describe('QueryInput', () => {
+  it('should render textarea with character counter')
+  it('should enforce 5000 character limit')
+  it('should support Ctrl+Enter submission')
+  it('should validate empty input')
+  it('should sanitize malicious input')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/QueryBuilder/QueryInput.tsx
+interface QueryInputProps {
+  value: string
+  onChange: (value: string) => void
+  onSubmit: () => void
+  maxLength?: number
+}
+
+export const QueryInput: React.FC<QueryInputProps> = memo(({
+  value,
+  onChange,
+  onSubmit,
+  maxLength = 5000
+}) => {
+  const [error, setError] = useState<string>('')
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const sanitized = DOMPurify.sanitize(e.target.value)
+    if (sanitized.length <= maxLength) {
+      onChange(sanitized)
+      setError('')
+    }
+  }, [onChange, maxLength])
+  
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      if (value.trim()) {
+        onSubmit()
+      } else {
+        setError('Query cannot be empty')
+      }
+    }
+  }, [value, onSubmit])
+  
+  return (
+    <Stack>
+      <Textarea
+        label="Discovery Query"
+        placeholder="Enter your query..."
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        error={error}
+        minRows={4}
+        maxRows={12}
+        aria-label="Expert discovery query input"
+        aria-describedby="query-helper-text"
+      />
+      <Text size="sm" color="dimmed" id="query-helper-text">
+        {value.length}/{maxLength} characters (Ctrl+Enter to submit)
+      </Text>
+    </Stack>
+  )
+})
+```
+
+#### TDD Cycle 4: QueryParameters Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/QueryBuilder/QueryParameters.test.tsx
+describe('QueryParameters', () => {
+  it('should render all parameter controls')
+  it('should validate numeric constraints')
+  it('should toggle advanced options')
+  it('should reset to defaults')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/QueryBuilder/QueryParameters.tsx
+interface QueryParametersProps {
+  parameters: DiscoveryParameters
+  onChange: (params: DiscoveryParameters) => void
+}
+
+export const QueryParameters: React.FC<QueryParametersProps> = memo(({
+  parameters,
+  onChange
+}) => {
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  
+  const handleChange = useCallback((field: keyof DiscoveryParameters, value: any) => {
+    onChange({ ...parameters, [field]: value })
+  }, [parameters, onChange])
+  
+  return (
+    <Paper p="md" withBorder>
+      <Stack>
+        <Group grow>
+          <NumberInput
+            label="Search Depth"
+            value={parameters.searchDepth}
+            onChange={(val) => handleChange('searchDepth', val)}
+            min={1}
+            max={5}
+            aria-label="Search depth parameter"
+          />
+          <NumberInput
+            label="Max Results"
+            value={parameters.maxResults}
+            onChange={(val) => handleChange('maxResults', val)}
+            min={1}
+            max={50}
+            aria-label="Maximum results parameter"
+          />
+        </Group>
+        
+        <Collapse in={showAdvanced}>
+          <Stack>
+            <Slider
+              label="Score Threshold"
+              value={parameters.scoreThreshold}
+              onChange={(val) => handleChange('scoreThreshold', val)}
+              min={0}
+              max={1}
+              step={0.1}
+              marks={[
+                { value: 0, label: '0' },
+                { value: 0.5, label: '0.5' },
+                { value: 1, label: '1' }
+              ]}
+            />
+            <MultiSelect
+              label="Discovery Methods"
+              data={['vector', 'graph', 'hybrid']}
+              value={parameters.methods}
+              onChange={(val) => handleChange('methods', val)}
+            />
+          </Stack>
+        </Collapse>
+        
+        <Group position="apart">
+          <Button
+            variant="subtle"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+          </Button>
+          <Button variant="light" onClick={handleReset}>
+            Reset to Defaults
+          </Button>
+        </Group>
+      </Stack>
+    </Paper>
+  )
+})
+```
+
+### Day 5-6: Technology Detection Components
+
+#### TDD Cycle 5: CodeInput Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/TechnologyDetection/CodeInput.test.tsx
+describe('CodeInput', () => {
+  it('should render code editor with syntax highlighting')
+  it('should support file uploads')
+  it('should handle large files gracefully')
+  it('should debounce detection triggers')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/TechnologyDetection/CodeInput.tsx
+export const CodeInput: React.FC<CodeInputProps> = memo(({
+  value,
+  onChange,
+  onDetect,
+  language = 'javascript'
+}) => {
+  const debouncedDetect = useDebouncedCallback(onDetect, 500)
+  
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue)
+    debouncedDetect(newValue)
+  }, [onChange, debouncedDetect])
+  
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (file.size > 1024 * 1024) { // 1MB limit
+      showNotification({
+        title: 'File too large',
+        message: 'Please upload files smaller than 1MB',
+        color: 'red'
+      })
+      return
+    }
+    
+    const content = await file.text()
+    handleChange(content)
+  }, [handleChange])
+  
+  return (
+    <Stack>
+      <FileButton onChange={handleFileUpload} accept=".js,.ts,.py,.java">
+        {(props) => (
+          <Button {...props} leftIcon={<IconUpload size={16} />}>
+            Upload Code File
+          </Button>
+        )}
+      </FileButton>
+      
+      <Prism
+        language={language}
+        value={value}
+        onChange={handleChange}
+        styles={(theme) => ({
+          code: {
+            fontSize: 14,
+            minHeight: 300
+          }
+        })}
+      />
+    </Stack>
+  )
+})
+```
+
+#### TDD Cycle 6: Technology Detection Hook
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/hooks/useTechnologyDetection.test.ts
+describe('useTechnologyDetection', () => {
+  it('should detect technologies from code')
+  it('should handle API errors gracefully')
+  it('should debounce rapid requests')
+  it('should cache results')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/hooks/useTechnologyDetection.ts
+export const useTechnologyDetection = (options?: UseDetectionOptions) => {
+  const queryClient = useQueryClient()
+  
+  const mutation = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await fetch('/api/admin/discovery/detect-technologies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, type: 'code' })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Technology detection failed')
+      }
+      
+      return response.json()
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['technologies', data.content], data)
+    },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+  })
+  
+  const detect = useDebouncedCallback(
+    (content: string) => mutation.mutate(content),
+    options?.debounceMs ?? 500
+  )
+  
+  return {
+    detect,
+    isDetecting: mutation.isLoading,
+    error: mutation.error,
+    data: mutation.data
+  }
+}
+```
+
+## Sprint 2: Semantic Search & Graph Exploration
+
+### Day 7-8: Semantic Search Components
+
+#### TDD Cycle 7: SearchInterface Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/SemanticSearch/SearchInterface.test.tsx
+describe('SearchInterface', () => {
+  it('should render search input with suggestions')
+  it('should display results with scores')
+  it('should handle pagination')
+  it('should cancel in-flight requests')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/SemanticSearch/SearchInterface.tsx
+export const SearchInterface: React.FC = memo(() => {
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  
+  const { data, isLoading, error } = useSemanticSearch({
+    query,
+    page,
+    enabled: query.length > 2
+  })
+  
+  return (
+    <Stack>
+      <TextInput
+        label="Semantic Search"
+        placeholder="Search for experts..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        icon={<IconSearch size={16} />}
+        rightSection={isLoading && <Loader size="xs" />}
       />
       
-      <div className="stats-grid">
-        <StatsCard
-          title="Total Experts"
-          value={data.total_experts}
-          icon="👥"
-        />
-        <StatsCard
-          title="Active Tasks"
-          value={data.active_tasks}
-          icon="📋"
-        />
-        <StatsCard
-          title="Success Rate"
-          value={`${data.success_rate}%`}
-          icon="✅"
-          status={data.isHighPerformance ? 'success' : 'normal'}
-        />
-        <StatsCard
-          title="Avg Response Time"
-          value={`${data.avg_response_time}ms`}
-          icon="⚡"
-          status={data.responseTimeStatus}
-        />
-      </div>
-    </div>
-  );
-};
+      <ErrorBoundary fallback={<ErrorFallback />}>
+        {error && <Alert color="red">{error.message}</Alert>}
+        
+        {data && (
+          <>
+            <SearchResults results={data.results} />
+            <Pagination
+              total={data.totalPages}
+              value={page}
+              onChange={setPage}
+            />
+          </>
+        )}
+      </ErrorBoundary>
+    </Stack>
+  )
+})
 ```
 
-## Final Integration and Polish
-
-### Complete Test Suite
-
+#### TDD Cycle 8: EmbeddingVisualizer Component
+**Red Phase - Tests:**
 ```typescript
-// hooks/useOverviewStats.integration.test.tsx
-describe('useOverviewStats - Full Integration', () => {
-  it('should handle complete user flow', async () => {
-    const { container } = render(<Dashboard />, { wrapper });
-
-    // Loading state
-    expect(screen.getByTestId('dashboard-skeleton')).toBeInTheDocument();
-
-    // Data loads
-    await waitFor(() => {
-      expect(screen.getByText('42')).toBeInTheDocument();
-    });
-
-    // Simulate network error
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res.networkError('Network error');
-      })
-    );
-
-    // Wait for auto-refresh
-    act(() => {
-      jest.advanceTimersByTime(30000);
-    });
-
-    // Error state appears
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-    });
-
-    // User clicks retry
-    const retryButton = screen.getByText('Retry');
-    
-    // Fix the network
-    server.use(
-      rest.get('/api/admin/stats/overview', (req, res, ctx) => {
-        return res(ctx.json({ total_experts: 43 }));
-      })
-    );
-
-    fireEvent.click(retryButton);
-
-    // Data reloads
-    await waitFor(() => {
-      expect(screen.getByText('43')).toBeInTheDocument();
-    });
-  });
-});
+// src/pages/ExpertDiscovery/components/SemanticSearch/EmbeddingVisualizer.test.tsx
+describe('EmbeddingVisualizer', () => {
+  it('should render 2D scatter plot')
+  it('should handle zoom and pan')
+  it('should show tooltips on hover')
+  it('should provide keyboard navigation')
+})
 ```
 
-### Performance Optimization
-
+**Green Phase - Implementation:**
 ```typescript
-// components/StatsCard.tsx (memoized)
-export const StatsCard = memo<StatsCardProps>(({ 
-  title, 
-  value, 
-  icon, 
-  status = 'normal' 
+// src/pages/ExpertDiscovery/components/SemanticSearch/EmbeddingVisualizer.tsx
+export const EmbeddingVisualizer: React.FC<VisualizerProps> = memo(({
+  embeddings,
+  queryEmbedding,
+  width = 600,
+  height = 400
 }) => {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null)
+  
+  useEffect(() => {
+    if (!svgRef.current || !embeddings.length) return
+    
+    const svg = d3.select(svgRef.current)
+    const margin = { top: 20, right: 20, bottom: 40, left: 40 }
+    const innerWidth = width - margin.left - margin.right
+    const innerHeight = height - margin.top - margin.bottom
+    
+    // Apply t-SNE or UMAP for dimensionality reduction
+    const reduced = useMemo(() => 
+      reduceDimensions(embeddings, 2),
+      [embeddings]
+    )
+    
+    // Create scales
+    const xScale = d3.scaleLinear()
+      .domain(d3.extent(reduced, d => d[0]))
+      .range([0, innerWidth])
+    
+    const yScale = d3.scaleLinear()
+      .domain(d3.extent(reduced, d => d[1]))
+      .range([innerHeight, 0])
+    
+    // Implement zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.5, 10])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform)
+      })
+    
+    svg.call(zoom)
+    
+    // Render points with accessibility
+    const g = svg.select('g.main-group')
+    
+    g.selectAll('circle')
+      .data(reduced)
+      .join('circle')
+      .attr('cx', d => xScale(d[0]))
+      .attr('cy', d => yScale(d[1]))
+      .attr('r', 4)
+      .attr('fill', (d, i) => i === 0 ? '#ff6b6b' : '#4dabf7')
+      .attr('role', 'img')
+      .attr('aria-label', (d, i) => `Expert ${i}: ${embeddings[i].expert.name}`)
+      .on('mouseenter', (event, d, i) => setHoveredPoint(i))
+      .on('mouseleave', () => setHoveredPoint(null))
+      .on('focus', (event, d, i) => setHoveredPoint(i))
+      .on('blur', () => setHoveredPoint(null))
+      .attr('tabindex', 0)
+    
+  }, [embeddings, queryEmbedding, width, height])
+  
   return (
-    <div className={`stats-card stats-card--${status}`}>
-      <div className="stats-card__icon">{icon}</div>
-      <div className="stats-card__content">
-        <h3 className="stats-card__title">{title}</h3>
-        <p className="stats-card__value">{value}</p>
-      </div>
-    </div>
-  );
-});
-
-StatsCard.displayName = 'StatsCard';
+    <Box>
+      <svg ref={svgRef} width={width} height={height}>
+        <g className="main-group" />
+      </svg>
+      {hoveredPoint !== null && (
+        <Tooltip label={embeddings[hoveredPoint].expert.name} />
+      )}
+    </Box>
+  )
+})
 ```
 
-## Deployment Checklist
+### Day 9-10: Graph Explorer Components
 
-1. **Unit Tests**: All cycles have comprehensive unit tests
-2. **Integration Tests**: Dashboard integration fully tested
-3. **Performance Tests**: Render performance validated
-4. **Error Scenarios**: All error types handled gracefully
-5. **Accessibility**: Screen reader support implemented
-6. **Documentation**: API documentation and usage examples complete
-7. **Monitoring**: Performance tracking in place
-8. **Feature Flags**: Can disable auto-refresh if needed
+#### TDD Cycle 9: NetworkGraph Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/GraphExplorer/NetworkGraph.test.tsx
+describe('NetworkGraph', () => {
+  it('should render force-directed graph')
+  it('should support node dragging')
+  it('should filter by node type')
+  it('should export as SVG/PNG')
+  it('should handle 1000+ nodes')
+})
+```
 
-## Next Steps
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/GraphExplorer/NetworkGraph.tsx
+export const NetworkGraph: React.FC<NetworkGraphProps> = memo(({
+  nodes,
+  edges,
+  filters,
+  onNodeClick,
+  onNodeHover
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set())
+  
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    // Use React Flow for better React integration
+    const graph = new ReactFlow({
+      nodes: nodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        position: node.position || { x: 0, y: 0 },
+        data: {
+          label: node.label,
+          ...node.metadata
+        }
+      })),
+      edges: edges.map(edge => ({
+        id: `${edge.source}-${edge.target}`,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type,
+        animated: edge.weight > 0.8,
+        style: {
+          strokeWidth: edge.weight * 5
+        }
+      }))
+    })
+    
+    // Implement viewport culling for performance
+    const viewportNodes = useViewportNodes(nodes, containerRef)
+    
+    // Use web worker for physics simulation
+    const worker = new Worker('/workers/graphPhysics.worker.js')
+    worker.postMessage({ nodes: viewportNodes, edges })
+    
+    worker.onmessage = (e) => {
+      const { positions } = e.data
+      updateNodePositions(positions)
+    }
+    
+    return () => worker.terminate()
+  }, [nodes, edges, filters])
+  
+  const handleExport = useCallback(async (format: 'svg' | 'png') => {
+    const svg = containerRef.current?.querySelector('svg')
+    if (!svg) return
+    
+    if (format === 'svg') {
+      const svgData = new XMLSerializer().serializeToString(svg)
+      downloadFile(svgData, 'graph.svg', 'image/svg+xml')
+    } else {
+      const canvas = await svgToCanvas(svg)
+      canvas.toBlob((blob) => {
+        if (blob) downloadFile(blob, 'graph.png', 'image/png')
+      })
+    }
+  }, [])
+  
+  return (
+    <ErrorBoundary fallback={<GraphErrorFallback />}>
+      <Stack>
+        <GraphControls
+          onExport={handleExport}
+          onFilter={setFilters}
+          onLayout={setLayout}
+        />
+        <Box
+          ref={containerRef}
+          sx={{ height: 600, border: '1px solid #e9ecef' }}
+        >
+          <ReactFlowProvider>
+            <ReactFlow
+              nodes={filteredNodes}
+              edges={filteredEdges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={onNodeClick}
+              onNodeMouseEnter={onNodeHover}
+              nodesDraggable
+              nodesConnectable={false}
+              fitView
+            >
+              <MiniMap />
+              <Controls />
+              <Background />
+            </ReactFlow>
+          </ReactFlowProvider>
+        </Box>
+      </Stack>
+    </ErrorBoundary>
+  )
+})
+```
 
-1. Add WebSocket support for real-time updates
-2. Implement data export functionality
-3. Add historical data comparison
-4. Create admin-configurable refresh intervals
-5. Add anomaly detection for stats values
+## Sprint 3: Comparison, Benchmarking & Export
+
+### Day 11-12: Results Comparison
+
+#### TDD Cycle 10: ComparisonTable Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/ResultsComparison/ComparisonTable.test.tsx
+describe('ComparisonTable', () => {
+  it('should display side-by-side results')
+  it('should highlight differences')
+  it('should sort by columns')
+  it('should virtualize large datasets')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/ResultsComparison/ComparisonTable.tsx
+export const ComparisonTable: React.FC<ComparisonTableProps> = memo(({
+  results,
+  methods
+}) => {
+  const [sortBy, setSortBy] = useState<string>('score')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  
+  // Use react-window for virtualization
+  const rowVirtualizer = useVirtual({
+    size: results.length,
+    parentRef: tableRef,
+    estimateSize: useCallback(() => 50, []),
+    overscan: 5
+  })
+  
+  const sortedResults = useMemo(() => {
+    return [...results].sort((a, b) => {
+      const aVal = a[sortBy]
+      const bVal = b[sortBy]
+      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal
+    })
+  }, [results, sortBy, sortOrder])
+  
+  const getDifferenceColor = useCallback((diff: number) => {
+    if (diff > 0.2) return 'green'
+    if (diff < -0.2) return 'red'
+    return 'gray'
+  }, [])
+  
+  return (
+    <ScrollArea style={{ height: 600 }}>
+      <Table highlightOnHover>
+        <thead>
+          <tr>
+            <th>Expert</th>
+            {methods.map(method => (
+              <th key={method}>
+                {method}
+                <ActionIcon
+                  size="xs"
+                  onClick={() => handleSort(method)}
+                >
+                  <IconArrowUp size={14} />
+                </ActionIcon>
+              </th>
+            ))}
+            <th>Difference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rowVirtualizer.virtualItems.map(virtualRow => {
+            const result = sortedResults[virtualRow.index]
+            return (
+              <tr key={result.expert.id}>
+                <td>{result.expert.name}</td>
+                {methods.map(method => (
+                  <td key={method}>
+                    <Badge color={getScoreColor(result[method].score)}>
+                      {(result[method].score * 100).toFixed(1)}%
+                    </Badge>
+                  </td>
+                ))}
+                <td>
+                  <Text color={getDifferenceColor(result.maxDiff)}>
+                    {result.maxDiff > 0 ? '+' : ''}{(result.maxDiff * 100).toFixed(1)}%
+                  </Text>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </Table>
+    </ScrollArea>
+  )
+})
+```
+
+### Day 13-14: Performance Benchmarking
+
+#### TDD Cycle 11: BenchmarkRunner Component
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/components/PerformanceBenchmark/BenchmarkRunner.test.tsx
+describe('BenchmarkRunner', () => {
+  it('should configure benchmark parameters')
+  it('should show progress during execution')
+  it('should handle cancellation')
+  it('should display results in real-time')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/components/PerformanceBenchmark/BenchmarkRunner.tsx
+export const BenchmarkRunner: React.FC = memo(() => {
+  const [config, setConfig] = useState<BenchmarkConfig>(defaultConfig)
+  const [isRunning, setIsRunning] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const abortControllerRef = useRef<AbortController>()
+  
+  const runBenchmark = useCallback(async () => {
+    setIsRunning(true)
+    setProgress(0)
+    abortControllerRef.current = new AbortController()
+    
+    try {
+      const response = await fetch('/api/admin/discovery/benchmark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+        signal: abortControllerRef.current.signal
+      })
+      
+      // Handle streaming response for real-time updates
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response body')
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const text = new TextDecoder().decode(value)
+        const updates = text.split('\n').filter(Boolean).map(JSON.parse)
+        
+        updates.forEach(update => {
+          if (update.type === 'progress') {
+            setProgress(update.value)
+          } else if (update.type === 'result') {
+            addResult(update.data)
+          }
+        })
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        showNotification({
+          title: 'Benchmark failed',
+          message: error.message,
+          color: 'red'
+        })
+      }
+    } finally {
+      setIsRunning(false)
+    }
+  }, [config])
+  
+  const cancelBenchmark = useCallback(() => {
+    abortControllerRef.current?.abort()
+  }, [])
+  
+  return (
+    <Stack>
+      <Paper p="md" withBorder>
+        <Stack>
+          <TextInput
+            label="Queries (one per line)"
+            value={config.queries.join('\n')}
+            onChange={(e) => setConfig({
+              ...config,
+              queries: e.target.value.split('\n').filter(Boolean)
+            })}
+            minRows={3}
+          />
+          
+          <Group grow>
+            <NumberInput
+              label="Iterations"
+              value={config.iterations}
+              onChange={(val) => setConfig({ ...config, iterations: val })}
+              min={1}
+              max={100}
+            />
+            <MultiSelect
+              label="Methods"
+              data={['vector', 'graph', 'hybrid']}
+              value={config.methods}
+              onChange={(val) => setConfig({ ...config, methods: val })}
+            />
+          </Group>
+          
+          <Group position="apart">
+            <Button
+              onClick={runBenchmark}
+              loading={isRunning}
+              disabled={!config.queries.length}
+              leftIcon={<IconPlayerPlay size={16} />}
+            >
+              Run Benchmark
+            </Button>
+            {isRunning && (
+              <Button
+                onClick={cancelBenchmark}
+                color="red"
+                variant="outline"
+                leftIcon={<IconPlayerStop size={16} />}
+              >
+                Cancel
+              </Button>
+            )}
+          </Group>
+        </Stack>
+      </Paper>
+      
+      {isRunning && (
+        <Progress
+          value={progress}
+          label={`${progress}%`}
+          size="xl"
+          animate
+        />
+      )}
+      
+      <BenchmarkResults results={results} />
+    </Stack>
+  )
+})
+```
+
+### Day 15: Export & Polish
+
+#### TDD Cycle 12: Export Functionality
+**Red Phase - Tests:**
+```typescript
+// src/pages/ExpertDiscovery/hooks/useExport.test.ts
+describe('useExport', () => {
+  it('should export as JSON')
+  it('should export as CSV')
+  it('should generate PDF reports')
+  it('should handle large datasets')
+})
+```
+
+**Green Phase - Implementation:**
+```typescript
+// src/pages/ExpertDiscovery/hooks/useExport.ts
+export const useExport = () => {
+  const exportAsJSON = useCallback(async (data: any, filename: string) => {
+    const json = JSON.stringify(data, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    downloadFile(blob, `${filename}.json`)
+  }, [])
+  
+  const exportAsCSV = useCallback(async (data: any[], filename: string) => {
+    const csv = Papa.unparse(data)
+    const blob = new Blob([csv], { type: 'text/csv' })
+    downloadFile(blob, `${filename}.csv`)
+  }, [])
+  
+  const exportAsPDF = useCallback(async (data: ExportData, filename: string) => {
+    // Use jsPDF for PDF generation
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(20)
+    doc.text('Expert Discovery Test Results', 20, 20)
+    
+    // Add metadata
+    doc.setFontSize(12)
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30)
+    doc.text(`Query: ${data.query}`, 20, 40)
+    
+    // Add results table
+    autoTable(doc, {
+      head: [['Expert', 'Score', 'Method', 'Reasoning']],
+      body: data.results.map(r => [
+        r.expert.name,
+        r.score.toFixed(3),
+        r.method,
+        r.reasoning
+      ]),
+      startY: 50
+    })
+    
+    // Add performance metrics
+    if (data.performance) {
+      const finalY = doc.lastAutoTable.finalY + 10
+      doc.text('Performance Metrics', 20, finalY)
+      doc.text(`Total Time: ${data.performance.totalTime}ms`, 20, finalY + 10)
+    }
+    
+    doc.save(`${filename}.pdf`)
+  }, [])
+  
+  return {
+    exportAsJSON,
+    exportAsCSV,
+    exportAsPDF
+  }
+}
+```
+
+## Performance Optimization Strategy
+
+### React 18 Optimizations
+1. **Concurrent Features**
+   - Use `useDeferredValue` for search inputs
+   - Implement `useTransition` for tab switching
+   - Enable Concurrent Mode for better UX
+
+2. **Code Splitting**
+   - Lazy load heavy components (graphs, charts)
+   - Split routes with React.lazy
+   - Preload critical chunks
+
+3. **Memoization**
+   - Use `React.memo` for all components
+   - Implement `useMemo` for expensive calculations
+   - Cache API responses with React Query
+
+### Bundle Optimization
+```typescript
+// Webpack configuration for optimal bundles
+module.exports = {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          priority: 10
+        },
+        charts: {
+          test: /[\\/]node_modules[\\/](recharts|d3)/,
+          name: 'charts',
+          priority: 20
+        }
+      }
+    }
+  }
+}
+```
+
+## Security Implementation
+
+### Input Validation
+```typescript
+// Centralized validation utilities
+export const validators = {
+  query: (value: string) => {
+    const sanitized = DOMPurify.sanitize(value)
+    if (sanitized !== value) {
+      throw new Error('Invalid characters detected')
+    }
+    if (value.length > 5000) {
+      throw new Error('Query too long')
+    }
+    return sanitized
+  },
+  
+  parameters: (params: any) => {
+    const schema = z.object({
+      searchDepth: z.number().min(1).max(5),
+      maxResults: z.number().min(1).max(50),
+      scoreThreshold: z.number().min(0).max(1),
+      methods: z.array(z.enum(['vector', 'graph', 'hybrid']))
+    })
+    
+    return schema.parse(params)
+  }
+}
+```
+
+### API Security
+```typescript
+// API middleware for rate limiting and validation
+export const apiMiddleware = {
+  rateLimit: rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests, please try again later'
+  }),
+  
+  validateAdmin: (req, res, next) => {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' })
+    }
+    next()
+  },
+  
+  sanitizeInput: (req, res, next) => {
+    req.body = sanitizeObject(req.body)
+    next()
+  }
+}
+```
+
+## Monitoring & Observability
+
+### Performance Monitoring
+```typescript
+// React performance monitoring
+export const PerformanceMonitor: React.FC = ({ children }) => {
+  useEffect(() => {
+    const observer = new PerformanceObserver((list) => {
+      list.getEntries().forEach((entry) => {
+        if (entry.entryType === 'measure') {
+          console.log(`${entry.name}: ${entry.duration}ms`)
+          // Send to analytics
+          sendToAnalytics({
+            metric: entry.name,
+            value: entry.duration,
+            tags: { page: 'expert-discovery' }
+          })
+        }
+      })
+    })
+    
+    observer.observe({ entryTypes: ['measure'] })
+    return () => observer.disconnect()
+  }, [])
+  
+  return <>{children}</>
+}
+```
+
+### Error Tracking
+```typescript
+// Global error boundary with reporting
+export class GlobalErrorBoundary extends React.Component {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo)
+    
+    // Report to error tracking service
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack
+        }
+      }
+    })
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Container>
+          <Alert color="red" title="Something went wrong">
+            <Text>An error occurred. Please refresh the page.</Text>
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </Alert>
+        </Container>
+      )
+    }
+    
+    return this.props.children
+  }
+}
+```
+
+## Deployment Strategy
+
+### Docker Configuration
+```dockerfile
+# Multi-stage build for optimization
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### CI/CD Pipeline
+```yaml
+# GitHub Actions workflow
+name: Test and Deploy
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run test:coverage
+      - run: npm run test:e2e
+      - run: npm run build
+      - uses: codecov/codecov-action@v3
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: docker build -t expert-discovery .
+      - run: docker push ${{ secrets.REGISTRY }}/expert-discovery
+```
+
+## Success Criteria Validation
+
+### Performance Metrics
+- [ ] Initial page load < 2s
+- [ ] Time to Interactive < 3s
+- [ ] 60fps during animations
+- [ ] Memory usage < 150MB
+- [ ] Bundle size < 500KB (gzipped)
+
+### Quality Metrics
+- [ ] 80%+ test coverage
+- [ ] 0 accessibility violations
+- [ ] TypeScript strict mode compliance
+- [ ] All components memoized
+- [ ] Error boundaries implemented
+
+### User Experience
+- [ ] Keyboard navigation complete
+- [ ] Screen reader compatible
+- [ ] Mobile responsive
+- [ ] Offline capability
+- [ ] Progressive enhancement

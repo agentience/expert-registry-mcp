@@ -70,3 +70,27 @@ export const statsApi = {
   usageTimeline: (params?: any) => api.get('/stats/usage/timeline', { params }),
   performance: (params?: any) => api.get('/stats/performance', { params }),
 }
+
+export const discoveryApi = {
+  // Smart discovery using hybrid AI engine
+  smartDiscover: (context: any) => {
+    console.log('🔍 Sending smartDiscover request:', context)
+    return api.post('/discovery/smart-discover', context)
+  },
+  
+  // Semantic search using natural language
+  semanticSearch: (query: string, searchMode = 'hybrid', limit = 5) => 
+    api.post('/discovery/semantic-search', { query, search_mode: searchMode, limit }),
+  
+  // Basic text search
+  search: (query: string, searchFields?: string[]) => 
+    api.post('/discovery/search', { query, search_fields: searchFields }),
+  
+  // Get expert details  
+  getExpert: (expertId: string, includeContext = true) => 
+    api.get(`/experts/${expertId}?include_context=${includeContext}`),
+  
+  // Detect technologies in codebase
+  detectTechnologies: (scanPaths: string[], includeContent = false) =>
+    api.post('/discovery/detect-technologies', { scan_paths: scanPaths, include_content: includeContent }),
+}

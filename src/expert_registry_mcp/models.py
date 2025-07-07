@@ -47,6 +47,12 @@ class Expert(BaseModel):
     tools_required: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+    
+    # Additional fields for discovery UI
+    confidence: float = Field(default=0.8, ge=0.0, le=1.0)
+    active: bool = Field(default=True)
+    experience_level: Optional[str] = None  # Computed from specializations
+    scores: Optional[Dict[str, float]] = None  # Detailed scoring breakdown
 
 
 class ExpertRegistry(BaseModel):

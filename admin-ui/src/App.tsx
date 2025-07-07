@@ -11,8 +11,10 @@ import { ContextEditor } from './pages/ContextEditor'
 import { Analytics } from './pages/Analytics'
 import { Performance } from './pages/Performance'
 import { Settings } from './pages/Settings'
+import { ExpertDiscoveryPage } from './pages/ExpertDiscovery'
 import { useRealtimeUpdates } from './hooks/useRealtime'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { NotFound } from './components/common/NotFound'
 
 // Import Mantine styles
 import '@mantine/core/styles.css'
@@ -43,6 +45,8 @@ function AppContent() {
         <Route path="analytics" element={<Analytics />} />
         <Route path="performance" element={<Performance />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="expert-discovery" element={<ExpertDiscoveryPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )
@@ -55,7 +59,12 @@ export function App() {
         <MantineProvider theme={theme} defaultColorScheme="light">
           <ModalsProvider>
             <Notifications position="top-right" />
-            <BrowserRouter>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+              }}
+            >
               <AppContent />
             </BrowserRouter>
           </ModalsProvider>
@@ -64,3 +73,21 @@ export function App() {
     </ErrorBoundary>
   )
 }
+
+// Export AppContent for testing (without BrowserRouter)
+export function AppWithoutRouter() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider theme={theme} defaultColorScheme="light">
+          <ModalsProvider>
+            <Notifications position="top-right" />
+            <AppContent />
+          </ModalsProvider>
+        </MantineProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  )
+}
+
+export default App
