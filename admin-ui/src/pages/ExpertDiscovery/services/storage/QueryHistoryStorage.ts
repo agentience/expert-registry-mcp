@@ -23,8 +23,7 @@ import type {
 import { isQueryHistoryEntry } from '../../types/history'
 import { CONFIG } from '../../config'
 import { 
-  PrecisionTimer, 
-  MemoryMonitor 
+  PrecisionTimer
 } from '../../utils/performance'
 import { 
   errorManager, 
