@@ -103,12 +103,21 @@ export function useExpertDiscovery(): UseExpertDiscoveryReturn {
   }, [lastQuery, discoverExperts, refetch])
 
   // Memoized derived state
-  const derivedState = useMemo(() => ({
-    experts: discoveryResult?.experts || [],
-    totalCount: discoveryResult?.totalCount || 0,
-    searchTime: discoveryResult?.searchTime || 0,
-    hasSearched: !!lastQuery
-  }), [discoveryResult, lastQuery])
+  const derivedState = useMemo(() => {
+    // Use mutation data if available and more recent, otherwise use query data
+    const mutationData = discoverExpertsMutation.data
+    const queryData = discoveryResult
+    
+    // Prefer mutation data if mutation was successful and query is stale
+    const effectiveData = (mutationData && discoverExpertsMutation.isSuccess) ? mutationData : queryData
+    
+    return {
+      experts: effectiveData?.experts || [],
+      totalCount: effectiveData?.totalCount || 0,
+      searchTime: effectiveData?.searchTime || 0,
+      hasSearched: !!lastQuery || discoverExpertsMutation.isSuccess
+    }
+  }, [discoveryResult, lastQuery, discoverExpertsMutation.data, discoverExpertsMutation.isSuccess])
 
   return {
     // Data

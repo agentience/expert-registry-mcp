@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { renderWithoutRouter, runAxeTests, expectElementToBeVisible } from '../../../../test-utils/test-utils'
