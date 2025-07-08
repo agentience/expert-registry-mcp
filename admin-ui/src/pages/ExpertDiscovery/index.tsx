@@ -32,10 +32,10 @@ import {
 } from './constants'
 import type { BreadcrumbItem, QueryParameters as QueryParametersType } from './types'
 
-// Lazy load tab content for better performance
-const TechnologyDetectionPanel = React.lazy(() => 
-  import('./components/TechnologyDetection/TechnologyDetectionPanel')
-)
+// Lazy load tab content for better performance (if needed in future)
+// const TechnologyDetectionPanel = React.lazy(() => 
+//   import('./components/TechnologyDetection/TechnologyDetectionPanel')
+// )
 
 export function ExpertDiscoveryPage() {
   const location = useLocation()
@@ -119,6 +119,7 @@ export function ExpertDiscoveryPage() {
     // Check if parameters actually changed
     const parametersChanged = JSON.stringify(queryParameters) !== JSON.stringify(previousParametersRef.current)
     
+    
     // Only trigger search if parameters changed, there's a query, user has searched before, and not currently searching
     if (parametersChanged && currentQueryRef.current && hasSearchedRef.current && !isSearchingRef.current) {
       previousParametersRef.current = queryParameters
@@ -144,7 +145,7 @@ export function ExpertDiscoveryPage() {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [queryParameters, expertDiscovery.discoverExperts, analytics.trackSearch]) // Only trigger on parameter changes
+  }, [queryParameters]) // Only trigger on parameter changes
 
   // Memoized breadcrumb items
   const breadcrumbItems = useMemo((): BreadcrumbItem[] => [
@@ -222,7 +223,7 @@ export function ExpertDiscoveryPage() {
             ))}
           </Tabs.List>
 
-          <Tabs.Panel value="query-builder" pt={UI_CONFIG.paperPadding}>
+          <Tabs.Panel value="search" pt={UI_CONFIG.paperPadding}>
             <Stack gap={UI_CONFIG.stackGap}>
               <QueryInput 
                 onQueryChange={handleQueryChange}
@@ -235,6 +236,7 @@ export function ExpertDiscoveryPage() {
                 initialParameters={queryParameters}
                 disabled={expertDiscovery.isDiscovering}
               />
+              
               
               {/* Expert Discovery Results */}
               {expertDiscovery.hasSearched && (
@@ -278,10 +280,20 @@ export function ExpertDiscoveryPage() {
             </Stack>
           </Tabs.Panel>
 
-          <Tabs.Panel value="technology-detection" pt={UI_CONFIG.paperPadding}>
-            <Suspense fallback={<TabSkeleton />}>
-              <TechnologyDetectionPanel />
-            </Suspense>
+          <Tabs.Panel value="analytics" pt={UI_CONFIG.paperPadding}>
+            <Paper p="md">
+              <Text c="dimmed" ta="center">
+                Analytics panel coming soon...
+              </Text>
+            </Paper>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="history" pt={UI_CONFIG.paperPadding}>
+            <Paper p="md">
+              <Text c="dimmed" ta="center">
+                History panel coming soon...
+              </Text>
+            </Paper>
           </Tabs.Panel>
         </Tabs>
 

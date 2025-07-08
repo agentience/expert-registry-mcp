@@ -74,7 +74,6 @@ export const statsApi = {
 export const discoveryApi = {
   // Smart discovery using hybrid AI engine
   smartDiscover: (context: any) => {
-    console.log('🔍 Sending smartDiscover request:', context)
     return api.post('/discovery/smart-discover', context)
   },
   

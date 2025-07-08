@@ -10,6 +10,12 @@ import { discoveryApi } from '../../../services/api'
  * Convert UI query parameters to MCP context format
  */
 const convertToMcpContext = (query: ExpertDiscoveryQuery) => {
+  // Ensure confidence_threshold is within valid range (backend likely requires 0.0-1.0)
+  const confidenceThreshold = Math.max(0.0, Math.min(1.0, query.confidenceThreshold || 0.8))
+  
+  // Ensure max_results is positive
+  const maxResults = Math.max(1, Math.min(50, query.maxResults || 10))
+  
   return {
     description: query.query,
     technologies: query.technologies || [],
@@ -17,9 +23,9 @@ const convertToMcpContext = (query: ExpertDiscoveryQuery) => {
       ...(query.experienceLevel !== 'any' ? [`Experience level: ${query.experienceLevel}`] : [])
     ],
     workflow_type: 'feature', // Default to feature workflow
-    include_inactive: query.includeInactive,
-    max_results: query.maxResults,
-    confidence_threshold: query.confidenceThreshold
+    include_inactive: query.includeInactive || false,
+    max_results: maxResults,
+    confidence_threshold: confidenceThreshold
   }
 }
 
@@ -30,12 +36,6 @@ export const realDiscoverExperts = async (query: ExpertDiscoveryQuery): Promise<
   const startTime = Date.now()
   
   try {
-    console.log('🚀 Real Expert Discovery:', {
-      query: query.query,
-      algorithm: query.algorithm,
-      confidenceThreshold: query.confidenceThreshold,
-      technologies: query.technologies
-    })
 
     let result: ExpertDiscoveryResult
     
@@ -128,19 +128,16 @@ export const realDiscoverExperts = async (query: ExpertDiscoveryQuery): Promise<
     }
     
   } catch (error: any) {
-    console.error('❌ Expert discovery failed:', error)
-    if (error.response?.data) {
-      console.error('Error details:', error.response.data)
+    // Extract meaningful error message
+    let errorMessage = 'Failed to discover experts'
+    if (error.response?.data?.detail) {
+      errorMessage = error.response.data.detail
+    } else if (error.message) {
+      errorMessage = error.message
     }
     
-    // Return empty results on error
-    return {
-      experts: [],
-      totalCount: 0,
-      searchTime: Date.now() - startTime,
-      algorithm: query.algorithm,
-      query: query.query
-    }
+    // Throw error to be handled by UI
+    throw new Error(errorMessage)
   }
 }
 

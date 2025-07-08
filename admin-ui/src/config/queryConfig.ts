@@ -39,7 +39,7 @@ export const isTestEnvironment = () => {
     typeof (globalThis as any)?.vi !== 'undefined' || 
     // @ts-ignore - jest global
     typeof (globalThis as any)?.jest !== 'undefined' ||
-    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test')
+    import.meta.env.MODE === 'test'
   )
 }
 
